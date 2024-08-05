@@ -327,6 +327,24 @@ public class FeaturizeNitrosamine {
 			}
 		}
 
+		public static FeatureJob forOneNitrosamine(Chemical c){
+			c.atoms().forEach(a->a.setAtomToAtomMap(0));
+			List<Integer> sites = markAllNitrosamines(c);
+
+			List<Chemical> chems = new ArrayList<>();
+			for(int m:sites){
+				chems.add(removeNitrosamine(c.copy(), m));
+			}
+			if(chems.size()!=1){
+				System.out.println(chems.size());
+				throw new IllegalArgumentException("Wrong number of nitrosamines for this method. Expected 1.");
+			}
+			FeatureJob fj = new FeatureJob(chems.get(0));
+			fj.addNitrosamine=true;
+			fj.useMap=true;
+
+			return fj;
+		}
 	}
 
 

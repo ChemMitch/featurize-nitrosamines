@@ -1,11 +1,9 @@
 package gov.nih.ncats.molwitch.renderer;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-
 import java.io.IOException;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 import org.junit.Ignore;
@@ -17,6 +15,8 @@ import gov.fda.gsrs.ndsri.FeaturizeNitrosamine;
 import gov.fda.gsrs.ndsri.FeaturizeNitrosamine.FeatureJob;
 import gov.fda.gsrs.ndsri.FeaturizeNitrosamine.FeatureResponse;
 import gov.nih.ncats.molwitch.Chemical;
+
+import static org.junit.Assert.*;
 
 public class FeatureParsingTests {
 
@@ -75,8 +75,9 @@ public class FeatureParsingTests {
     	assertEquals("A. Multiple Secondary Amine" ,resp1.getType());
     	assertEquals("0,0" ,resp1.getFeature(FeaturizeNitrosamine.FeaturePairRegistry.ALPHA_HYDROGENS.getFeatureName()).orElse(null));
     }
-    
-    @Test
+
+
+	@Test
     public void testSP3CarbonOnSmallRing() throws Exception {
     	Chemical c1= Chemical.parse("C1CCCCC1");
     	
@@ -93,7 +94,7 @@ public class FeatureParsingTests {
     }
     
     @Test
-    public void testisPiperazine() throws Exception {
+    public void testIsPiperazine() throws Exception {
     	FeaturizeNitrosamine.GLOBAL_SETTINGS.DO_EXTENDED_FEATURES_TOO=true;
     	
     	Chemical c1= Chemical.parse("N1CCNCC1");
@@ -116,8 +117,6 @@ public class FeatureParsingTests {
     public void testCarboxylicAcidOnSaltDoesNotCount() throws Exception {
     	Chemical c1= Chemical.parse("O[C@H]([C@@H](O)C(O)=O)C(O)=O.COC1=CC=C(C[C@@H](C)[NH:20]C[C@H](O)C2=CC=C(O)C(NC=O)=C2)C=C1");
     	
-    	//TODO: This should really work even without this part
-//    	c1.generateCoordinates();
     	FeatureJob fj = new FeatureJob(c1);
     	
     	List<FeatureResponse> resp = FeaturizeNitrosamine.fingerprintNitrosamine(fj);
@@ -316,4 +315,19 @@ public class FeatureParsingTests {
     	assertEquals("0,1" ,resp1.getFeature(FeaturizeNitrosamine.FeaturePairRegistry.ALPHA_HYDROGENS.getFeatureName()).orElse(null));
     }
 	//NC1=NC2=C(N=CN2[C@@H]3C[C@H](CO)C=C3)C(NC4CC4)=N1
+
+	@Test
+	public void testTartaricAcid() throws Exception {
+		//we expect this molecule not to have any nitrosamine potential whatsowvver
+		Chemical c1= Chemical.parse("[C@@H]([C@H](C(=O)O)O)(C(=O)O)O");
+
+		FeatureJob fj = new FeatureJob(c1);
+
+		List<FeatureResponse> resp = FeaturizeNitrosamine.fingerprintNitrosamine(fj);
+
+		assertNotNull(resp);
+		System.out.println("got output");
+		assertTrue( resp.isEmpty());
+	}
+
 }

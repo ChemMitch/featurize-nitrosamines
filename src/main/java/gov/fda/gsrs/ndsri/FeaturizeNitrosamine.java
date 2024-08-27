@@ -1768,4 +1768,53 @@ public class FeaturizeNitrosamine {
 
 		}
 	}
+
+	public static Optional<FeatureResponse> forMostPotentNitrosamine(Chemical c){
+		c.atoms().forEach(a->a.setAtomToAtomMap(0));
+		List<Integer> sites = markAllNitrosamines(c);
+		if(sites.isEmpty()){
+			throw new IllegalArgumentException("Wrong number of nitrosamines for this method. Expected 1 or more.");
+		}
+
+		List<Chemical> chems = new ArrayList<>();
+		for(int m:sites){
+			chems.add(removeNitrosamine(c.copy(), m));
+		}
+
+		return chems.stream()
+				.map(cc->new FeatureJob(cc))
+				.peek(fj->fj.addNitrosamine=false)
+				.peek(fj->fj.useMap=true)
+				.map(fj->{
+
+					try{
+						return FeaturizeNitrosamine.fingerprintNitrosamine(fj);
+					}catch(Exception e){
+						return new ArrayList<FeatureResponse>();
+					}
+				})
+				.flatMap(r->r.stream())
+				.sorted(Comparator.comparing(fr->fr.getCategoryScore()))
+				.findFirst()
+				.map(fr->{
+					if(fr.getCategoryScore()==1){
+						fr.addFeature("AI Limit (US)", "26.5 ng/day");
+					}else if(fr.getCategoryScore()==2){
+						fr.addFeature("AI Limit (US)", "100 ng/day");
+					}else if(fr.getCategoryScore()==3){
+						fr.addFeature("AI Limit (US)", "400 ng/day");
+					}else if(fr.getCategoryScore()==4){
+						fr.addFeature("AI Limit (US)", "1500 ng/day");
+					}else if(fr.getCategoryScore()==5){
+						fr.addFeature("AI Limit (US)", "1500 ng/day");
+					}
+					if(chems.size()==1){
+						fr.setType("Single N-nitroso group");
+					}else{
+						fr.setType("Most potent of multiple N-nitroso groups");
+					}
+					return fr;
+				});
+	}
+
 }

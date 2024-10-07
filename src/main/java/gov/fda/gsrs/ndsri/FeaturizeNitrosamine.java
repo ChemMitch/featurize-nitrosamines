@@ -539,8 +539,7 @@ public class FeaturizeNitrosamine {
 				}
 			}
 		}
-
-
+		System.out.printf("computed type: %s\n", type);
 
 		if(atList.size()>0 || !got){
 			int i=1;

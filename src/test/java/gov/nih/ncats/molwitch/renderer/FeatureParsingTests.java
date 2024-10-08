@@ -1,13 +1,13 @@
 package gov.nih.ncats.molwitch.renderer;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.apache.commons.io.IOUtils;
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -17,6 +17,8 @@ import gov.fda.gsrs.ndsri.FeaturizeNitrosamine;
 import gov.fda.gsrs.ndsri.FeaturizeNitrosamine.FeatureJob;
 import gov.fda.gsrs.ndsri.FeaturizeNitrosamine.FeatureResponse;
 import gov.nih.ncats.molwitch.Chemical;
+
+import static org.junit.Assert.*;
 
 public class FeatureParsingTests {
 
@@ -55,8 +57,7 @@ public class FeatureParsingTests {
     	
     	FeatureResponse resp1= resp.get(0);
     	resp1.getChemical();
-//    	for()
-    	
+
     	assertEquals(1,resp.size());
     	assertEquals("A. Secondary Amine" ,resp1.getType());
     	assertEquals("0,1" ,resp1.getFeature(FeaturizeNitrosamine.FeaturePairRegistry.ALPHA_HYDROGENS.getFeatureName()).orElse(null));
@@ -75,8 +76,9 @@ public class FeatureParsingTests {
     	assertEquals("A. Multiple Secondary Amine" ,resp1.getType());
     	assertEquals("0,0" ,resp1.getFeature(FeaturizeNitrosamine.FeaturePairRegistry.ALPHA_HYDROGENS.getFeatureName()).orElse(null));
     }
-    
-    @Test
+
+
+	@Test
     public void testSP3CarbonOnSmallRing() throws Exception {
     	Chemical c1= Chemical.parse("C1CCCCC1");
     	
@@ -93,7 +95,7 @@ public class FeatureParsingTests {
     }
     
     @Test
-    public void testisPiperazine() throws Exception {
+    public void testIsPiperazine() throws Exception {
     	FeaturizeNitrosamine.GLOBAL_SETTINGS.DO_EXTENDED_FEATURES_TOO=true;
     	
     	Chemical c1= Chemical.parse("N1CCNCC1");
@@ -116,8 +118,6 @@ public class FeatureParsingTests {
     public void testCarboxylicAcidOnSaltDoesNotCount() throws Exception {
     	Chemical c1= Chemical.parse("O[C@H]([C@@H](O)C(O)=O)C(O)=O.COC1=CC=C(C[C@@H](C)[NH:20]C[C@H](O)C2=CC=C(O)C(NC=O)=C2)C=C1");
     	
-    	//TODO: This should really work even without this part
-//    	c1.generateCoordinates();
     	FeatureJob fj = new FeatureJob(c1);
     	
     	List<FeatureResponse> resp = FeaturizeNitrosamine.fingerprintNitrosamine(fj);
@@ -316,4 +316,110 @@ public class FeatureParsingTests {
     	assertEquals("0,1" ,resp1.getFeature(FeaturizeNitrosamine.FeaturePairRegistry.ALPHA_HYDROGENS.getFeatureName()).orElse(null));
     }
 	//NC1=NC2=C(N=CN2[C@@H]3C[C@H](CO)C=C3)C(NC4CC4)=N1
+
+	@Test
+	public void testTartaricAcid() throws Exception {
+		//we expect this molecule not to have any nitrosamine potential whatsoever
+		Chemical c1= Chemical.parse("[C@@H]([C@H](C(=O)O)O)(C(=O)O)O");
+
+		FeatureJob fj = new FeatureJob(c1);
+
+		List<FeatureResponse> resp = FeaturizeNitrosamine.fingerprintNitrosamine(fj);
+
+		assertNotNull(resp);
+		System.out.println("got output");
+		assertTrue( resp.isEmpty());
+	}
+
+	@Test
+	public void testAmide() throws Exception {
+		//we expect this molecule not to have any nitrosamine potential whatsoever
+		Chemical c1= Chemical.parse("C(C)CCN(C(N)=N)N=O");
+
+		FeatureJob fj = new FeatureJob(c1);
+
+		List<FeatureResponse> resp = FeaturizeNitrosamine.fingerprintNitrosamine(fj);
+
+		assertNotNull(resp);
+		System.out.println("got output");
+		assertTrue( resp.isEmpty());
+	}
+
+	@Test
+	public void testNitrosamine() throws Exception {
+		Chemical testChemical = Chemical.parse("CCN(CC)N=O");
+		FeatureJob job = new FeatureJob(testChemical);
+		List<FeatureResponse> responses = FeaturizeNitrosamine.fingerprintNitrosamine(job);
+		assertNotNull(responses);
+		for(FeatureResponse resp: responses) {
+			System.out.printf("type: %s\n", resp.getType());
+		}
+	}
+
+	@Test
+	public void testNitrosamineFromMolfile() throws Exception {
+		//InputStream stream =this.getClass().getResourceAsStream("molfiles/nitrosamine1.mol");
+		//String molfileText = IOUtils.toString(stream, "UTF-8");
+		String molfileText ="\n" +
+				"  ACCLDraw10032414512D\n" +
+				"\n" +
+				" 10  9  0  0  0  0  0  0  0  0999 V2000\n" +
+				"   10.4139  -10.4343    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" +
+				"    9.6163  -10.8944    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" +
+				"   11.2119  -10.8946    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" +
+				"   12.0099  -10.4343    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" +
+				"   12.8079  -10.8946    0.0000 N   0  0  3  0  0  0  0  0  0  0  0  0\n" +
+				"   12.8098  -11.8159    0.0000 C   0  0  3  0  0  0  0  0  0  0  0  0\n" +
+				"   12.0132  -12.2777    0.0000 N   0  0  0  0  0  0  0  0  0  0  0  0\n" +
+				"   13.6060  -10.4343    0.0000 N   0  0  0  0  0  0  0  0  0  0  0  0\n" +
+				"   14.4034  -10.8944    0.0000 O   0  0  0  0  0  0  0  0  0  0  0  0\n" +
+				"   13.6076  -12.2765    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" +
+				"  1  2  1  0  0  0  0\n" +
+				"  1  3  1  0  0  0  0\n" +
+				"  3  4  1  0  0  0  0\n" +
+				"  4  5  1  0  0  0  0\n" +
+				"  5  6  1  0  0  0  0\n" +
+				"  6  7  1  0  0  0  0\n" +
+				"  5  8  1  0  0  0  0\n" +
+				"  8  9  2  0  0  0  0\n" +
+				"  6 10  1  0  0  0  0\n" +
+				"M  END";
+		Chemical testChemical = Chemical.parse(molfileText);
+		Optional<FeatureResponse> response = FeaturizeNitrosamine.forMostPotentNitrosamine(testChemical);
+		assertTrue(response.isPresent());
+		System.out.printf("type: %s\n", response.get().getType());
+	}
+
+	@Test
+	public void testNitrosamineFromMolfile2() throws Exception {
+		//InputStream stream =this.getClass().getResourceAsStream("molfiles/nitrosamine_amide.mol");
+		//String molfileText = IOUtils.toString(stream, "UTF-8");
+		String molfileText ="\n" +
+				"  ACCLDraw10032421372D\n" +
+				"\n" +
+				" 10  9  0  0  0  0  0  0  0  0999 V2000\n" +
+				"   11.1697  -12.9221    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" +
+				"   10.3721  -13.3822    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" +
+				"   11.9677  -13.3824    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" +
+				"   12.7657  -12.9221    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" +
+				"   13.5637  -13.3824    0.0000 N   0  0  3  0  0  0  0  0  0  0  0  0\n" +
+				"   13.5637  -14.3037    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" +
+				"   12.7690  -14.7655    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" +
+				"   14.3618  -12.9221    0.0000 N   0  0  0  0  0  0  0  0  0  0  0  0\n" +
+				"   15.1592  -13.3822    0.0000 O   0  0  0  0  0  0  0  0  0  0  0  0\n" +
+				"   14.3634  -14.7643    0.0000 O   0  0  0  0  0  0  0  0  0  0  0  0\n" +
+				"  1  2  1  0  0  0  0\n" +
+				"  1  3  1  0  0  0  0\n" +
+				"  3  4  1  0  0  0  0\n" +
+				"  4  5  1  0  0  0  0\n" +
+				"  5  6  1  0  0  0  0\n" +
+				"  6  7  1  0  0  0  0\n" +
+				"  5  8  1  0  0  0  0\n" +
+				"  8  9  2  0  0  0  0\n" +
+				"  6 10  2  0  0  0  0\n" +
+				"M  END\n";
+		Chemical testChemical = Chemical.parse(molfileText);
+		Optional<FeatureResponse> response = FeaturizeNitrosamine.forMostPotentNitrosamine(testChemical);
+		assertFalse(response.isPresent());
+	}
 }

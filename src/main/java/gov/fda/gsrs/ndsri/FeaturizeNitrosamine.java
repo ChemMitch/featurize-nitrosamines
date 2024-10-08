@@ -1793,6 +1793,7 @@ public class FeaturizeNitrosamine {
 					}
 				})
 				.flatMap(r->r.stream())
+				.filter(r->!(r.getType().startsWith("B") || r.getType().startsWith("C"))) //eliminate amides and amide-like items
 				.sorted(Comparator.comparing(fr->fr.getCategoryScore()))
 				.findFirst()
 				.map(fr->{

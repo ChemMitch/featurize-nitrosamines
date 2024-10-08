@@ -2,9 +2,11 @@ package gov.nih.ncats.molwitch.renderer;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 import org.apache.commons.io.IOUtils;
@@ -21,6 +23,44 @@ import gov.nih.ncats.molwitch.Chemical;
 import static org.junit.Assert.*;
 
 public class FeatureParsingTests {
+
+
+	private static class TestMol {
+		private String molFileName;
+		private boolean expectData;
+		private String description;
+
+		public TestMol(String molFileName, boolean expectData, String description) {
+			this.molFileName = molFileName;
+			this.expectData = expectData;
+			this.description = description;
+		}
+
+		public String getMolFileName() {
+			return molFileName;
+		}
+
+		public void setMolFileName(String molFileName) {
+			this.molFileName = molFileName;
+		}
+
+		public boolean isExpectData() {
+			return expectData;
+		}
+
+		public void setExpectData(boolean expectData) {
+			this.expectData = expectData;
+		}
+
+		public String getDescription() {
+			return description;
+		}
+
+		public void setDescription(String description) {
+			this.description = description;
+		}
+
+	}
 
     @Test
     @Ignore
@@ -357,69 +397,30 @@ public class FeatureParsingTests {
 	}
 
 	@Test
-	public void testNitrosamineFromMolfile() throws Exception {
-		//InputStream stream =this.getClass().getResourceAsStream("molfiles/nitrosamine1.mol");
-		//String molfileText = IOUtils.toString(stream, "UTF-8");
-		String molfileText ="\n" +
-				"  ACCLDraw10032414512D\n" +
-				"\n" +
-				" 10  9  0  0  0  0  0  0  0  0999 V2000\n" +
-				"   10.4139  -10.4343    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" +
-				"    9.6163  -10.8944    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" +
-				"   11.2119  -10.8946    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" +
-				"   12.0099  -10.4343    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" +
-				"   12.8079  -10.8946    0.0000 N   0  0  3  0  0  0  0  0  0  0  0  0\n" +
-				"   12.8098  -11.8159    0.0000 C   0  0  3  0  0  0  0  0  0  0  0  0\n" +
-				"   12.0132  -12.2777    0.0000 N   0  0  0  0  0  0  0  0  0  0  0  0\n" +
-				"   13.6060  -10.4343    0.0000 N   0  0  0  0  0  0  0  0  0  0  0  0\n" +
-				"   14.4034  -10.8944    0.0000 O   0  0  0  0  0  0  0  0  0  0  0  0\n" +
-				"   13.6076  -12.2765    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" +
-				"  1  2  1  0  0  0  0\n" +
-				"  1  3  1  0  0  0  0\n" +
-				"  3  4  1  0  0  0  0\n" +
-				"  4  5  1  0  0  0  0\n" +
-				"  5  6  1  0  0  0  0\n" +
-				"  6  7  1  0  0  0  0\n" +
-				"  5  8  1  0  0  0  0\n" +
-				"  8  9  2  0  0  0  0\n" +
-				"  6 10  1  0  0  0  0\n" +
-				"M  END";
+	public void testNitrosamideSetFromMolfile() throws Exception {
+		List<TestMol> testData = Arrays.asList(new TestMol("nitrosamiide-like", false,
+				"nitrosamide-like with S expects no output"),
+				new TestMol("nitrosamiide-like2", false,
+						"nitrosamide-like with N expects no output"),
+				new TestMol("nitrosamine_amide", false, "amides are currently not supported by model"),
+				new TestMol("nitrosamine1", true, "nitrosamine produces output"));
+		testData.forEach(m->{
+			try {
+				InputStream stream = getClass().getResourceAsStream("/molfiles/" + m.molFileName + ".mol");
+				String molfileText = IOUtils.toString(stream, "UTF-8");
+				Chemical testChemical = Chemical.parse(molfileText);
+				Optional<FeatureResponse> response = FeaturizeNitrosamine.forMostPotentNitrosamine(testChemical);
+				assertEquals(m.expectData, response.isPresent());
+			} catch (Exception ex){
+				Logger.getLogger(this.getClass().getName()).warning(String.format("failure for %s", m.description));
+				fail();
+			}
+		});
+		/*InputStream stream =getClass().getResourceAsStream("/molfiles/nitrosamiide-like.mol");
+		String molfileText = IOUtils.toString(stream, "UTF-8");
 		Chemical testChemical = Chemical.parse(molfileText);
 		Optional<FeatureResponse> response = FeaturizeNitrosamine.forMostPotentNitrosamine(testChemical);
-		assertTrue(response.isPresent());
-		System.out.printf("type: %s\n", response.get().getType());
+		assertFalse(response.isPresent());*/
 	}
 
-	@Test
-	public void testNitrosamineFromMolfile2() throws Exception {
-		//InputStream stream =this.getClass().getResourceAsStream("molfiles/nitrosamine_amide.mol");
-		//String molfileText = IOUtils.toString(stream, "UTF-8");
-		String molfileText ="\n" +
-				"  ACCLDraw10032421372D\n" +
-				"\n" +
-				" 10  9  0  0  0  0  0  0  0  0999 V2000\n" +
-				"   11.1697  -12.9221    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" +
-				"   10.3721  -13.3822    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" +
-				"   11.9677  -13.3824    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" +
-				"   12.7657  -12.9221    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" +
-				"   13.5637  -13.3824    0.0000 N   0  0  3  0  0  0  0  0  0  0  0  0\n" +
-				"   13.5637  -14.3037    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" +
-				"   12.7690  -14.7655    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" +
-				"   14.3618  -12.9221    0.0000 N   0  0  0  0  0  0  0  0  0  0  0  0\n" +
-				"   15.1592  -13.3822    0.0000 O   0  0  0  0  0  0  0  0  0  0  0  0\n" +
-				"   14.3634  -14.7643    0.0000 O   0  0  0  0  0  0  0  0  0  0  0  0\n" +
-				"  1  2  1  0  0  0  0\n" +
-				"  1  3  1  0  0  0  0\n" +
-				"  3  4  1  0  0  0  0\n" +
-				"  4  5  1  0  0  0  0\n" +
-				"  5  6  1  0  0  0  0\n" +
-				"  6  7  1  0  0  0  0\n" +
-				"  5  8  1  0  0  0  0\n" +
-				"  8  9  2  0  0  0  0\n" +
-				"  6 10  2  0  0  0  0\n" +
-				"M  END\n";
-		Chemical testChemical = Chemical.parse(molfileText);
-		Optional<FeatureResponse> response = FeaturizeNitrosamine.forMostPotentNitrosamine(testChemical);
-		assertFalse(response.isPresent());
-	}
 }
